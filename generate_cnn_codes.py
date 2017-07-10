@@ -16,15 +16,11 @@ def generate_codes(dataset):
     num_examples = dataset.shape[0]
     num_batches = num_examples / args.batch_size + 1
     results = []
-    i = 0
     for b in range(num_batches):
         start_idx = b * args.batch_size
         end_idx = min((b+1) * args.batch_size, num_examples)
         print "Generating batch {}/{}".format(b, num_batches)
         results.append(model.predict(dataset[start_idx:end_idx, :, :, :]))
-        i += 1
-        if i > 3:
-            break
     return np.concatenate(results)
 
 if __name__ == "__main__":
