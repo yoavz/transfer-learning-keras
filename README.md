@@ -51,6 +51,12 @@ experiments on my Macbook Air, with a 2.2 GHz Intel Core i7 and 8 GB of DDR3
 RAM. I split each class in the Caltech-101 dataset into 70% training and 30%
 test to run these experiments.
 
+[Some baseline accuracies for Caltech-101 are avaiable at this
+link](http://zybler.blogspot.com/2009/08/table-of-results-for-famous-public.html)
+to compare the following results against. These used a slightly different
+training and experiment setup than I did, so should be used only to provide
+rough context and not as an aboslute comparison.
+
 #### [Inception V3](https://arxiv.org/pdf/1512.00567.pdf)
 
 The final convolutional layer of the inception v3 model has an output shape of 5 x 5 x 2048,
