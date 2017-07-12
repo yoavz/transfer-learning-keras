@@ -20,7 +20,7 @@ def checkpoint_filepath(examples_per_class):
                       "_weights.{epoch:02d}-{val_acc:.2f}.hdf5")
 
 def train_with_examples_per_class(examples_per_class=None):
-    """ Train a softmax model on the CNN codes of a model given the arguments 
+    """ Train a softmax model on the CNN codes of a model given the arguments
         specified (see config.py for training/model configuration).
 
         examples_per_class (optional) will limit the training instances per
@@ -53,7 +53,7 @@ def train_with_examples_per_class(examples_per_class=None):
     input_shape = train_x.shape[1:]
     assert train_x.shape[1:] == test_x.shape[1:]
 
-    # The model is extremely simple: flatten the CNN convolutional layer to a 1-D layer and 
+    # The model is extremely simple: flatten the CNN convolutional layer to a 1-D layer and
     # train a single softmax layer on top of it.
     inputs = Input(input_shape)
     flatten = Flatten(name = "flatten")(inputs)
@@ -98,7 +98,7 @@ if __name__ == "__main__":
             file.
         """
         results = {}
-        for n in [5, 10, 15, 20, 25, 30]:
+        for n in [1, 2, 3, 4, 5]:
             results[n] = train_with_examples_per_class(n)
 
         with open(os.path.join(args.data_dir, args.model_name + "_results.json"), "w") as f:
