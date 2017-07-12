@@ -18,8 +18,7 @@ def get_model_filepath(examples_per_class):
                       "_weights.{epoch:02d}-{val_acc:.2f}.hdf5")
 
 def train_with_examples_per_class(examples_per_class):
-  (train_x, train_y), (test_x, test_y) = generate_cnn_codes.get_codes(
-      args.model_name, args.data_dir, args.batch_size)
+  (train_x, train_y), (test_x, test_y) = generate_cnn_codes.get_codes()
 
   indices = []
   for i in range(caltech_101.num_class_labels()):
