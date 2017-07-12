@@ -7,6 +7,7 @@ from keras.utils import to_categorical
 import argparse
 import caltech_101
 import datetime
+import json
 import generate_cnn_codes
 import numpy as np
 import os
@@ -14,19 +15,33 @@ import os
 parser = argparse.ArgumentParser(description="")
 parser.add_argument("--data_dir", type=str, default="data")
 parser.add_argument("--models_dir", type=str, default="models")
-parser.add_argument("--model_name", type=str, default="vgg19", choices=["vgg16", "vgg19", "inception"])
-parser.add_argument("--optimizer", type=str, default="adadelta", choices=["adadelta", "rmsprop"])
+parser.add_argument("--model_name", type=str, default="vgg19",
+                    choices=["vgg16", "vgg19", "inception"])
+parser.add_argument("--optimizer", type=str, default="adadelta",
+                    choices=["adadelta", "rmsprop"])
 parser.add_argument("--batch_size", type=int, default=32)
 parser.add_argument("--epochs", type=int, default=100)
 args = parser.parse_args()
 
-def get_model_filepath():
-  return os.path.join(args.data_dir, args.model_name + "_weights.{epoch:02d}-{val_acc:.2f}.hdf5")
+def get_model_filepath(examples_per_class):
+  return os.path.join(args.data_dir, args.model_name + "_" +
+                      str(examples_per_class) +
+                      "_weights.{epoch:02d}-{val_acc:.2f}.hdf5")
 
-if __name__ == "__main__":
-
+def train_with_examples_per_class(examples_per_class):
   (train_x, train_y), (test_x, test_y) = generate_cnn_codes.get_codes(
       args.model_name, args.data_dir, args.batch_size)
+
+  indices = []
+  for i in range(caltech_101.num_class_labels()):
+    class_indices = np.squeeze(np.argwhere(train_y == i))
+    num_in_class = len(class_indices)
+    class_indices = class_indices[:min(num_in_class, examples_per_class)]
+    indices.append(class_indices)
+
+  all_indices = np.concatenate(indices)
+  train_x = train_x[all_indices, :, :, :]
+  train_y = train_y[all_indices]
 
   train_labels = to_categorical(train_y, num_classes=caltech_101.num_class_labels())
   test_labels = to_categorical(test_y, num_classes=caltech_101.num_class_labels())
@@ -42,7 +57,8 @@ if __name__ == "__main__":
   print "Training model: {}, input shape: {}, flattened: {}".format(
       args.model_name, input_shape, np.prod(input_shape))
 
-  checkpoint = ModelCheckpoint(get_model_filepath(), monitor = "val_acc",
+  checkpoint = ModelCheckpoint(get_model_filepath(examples_per_class),
+                               monitor = "val_acc",
                                save_best_only = True, mode = "max")
   model = Model(inputs, predictions, name = "softmax-classification")
   model.compile(optimizer = args.optimizer,
@@ -56,8 +72,19 @@ if __name__ == "__main__":
             shuffle = True,
             callbacks = [checkpoint],
             verbose = 1)
-  print("Training time: {}".format(datetime.datetime.now() - t))
 
-  loss, accuracy = model.evaluate(test_x, test_y, batch_size=args.batch_size)
+  training_time = (datetime.datetime.now() - t).seconds
+  loss, accuracy = model.evaluate(test_x, test_labels, batch_size=args.batch_size)
   print('Test loss:', loss)
   print('Test accuracy:', accuracy)
+  print("Training time: {}".format(training_time))
+
+  return (loss, accuracy, training_time)
+
+if __name__ == "__main__":
+  results = {}
+  for n in [5, 10]:
+    results[n] = train_with_examples_per_class(n)
+
+  with open(os.path.join(args.data_dir, args.model_name + "_results.json"), "w") as f:
+    json.dump(results, f)
