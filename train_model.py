@@ -4,24 +4,13 @@ from keras.models import Model
 from keras.layers import Input, Dense, Flatten
 from keras.utils import to_categorical
 
-import argparse
+from config import args
 import caltech_101
 import datetime
 import json
 import generate_cnn_codes
 import numpy as np
 import os
-
-parser = argparse.ArgumentParser(description="")
-parser.add_argument("--data_dir", type=str, default="data")
-parser.add_argument("--models_dir", type=str, default="models")
-parser.add_argument("--model_name", type=str, default="vgg19",
-                    choices=["vgg16", "vgg19", "inception"])
-parser.add_argument("--optimizer", type=str, default="adadelta",
-                    choices=["adadelta", "rmsprop"])
-parser.add_argument("--batch_size", type=int, default=32)
-parser.add_argument("--epochs", type=int, default=100)
-args = parser.parse_args()
 
 def get_model_filepath(examples_per_class):
   return os.path.join(args.data_dir, args.model_name + "_" +
@@ -83,7 +72,7 @@ def train_with_examples_per_class(examples_per_class):
 
 if __name__ == "__main__":
   results = {}
-  for n in [5, 10]:
+  for n in [5, 10, 15, 20, 25, 30]:
     results[n] = train_with_examples_per_class(n)
 
   with open(os.path.join(args.data_dir, args.model_name + "_results.json"), "w") as f:
