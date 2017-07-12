@@ -1,3 +1,5 @@
+""" The main script used to run experiments. """
+
 from keras.applications import vgg19
 from keras.callbacks import ModelCheckpoint
 from keras.models import Model
@@ -90,13 +92,18 @@ def train_with_examples_per_class(examples_per_class=None):
     return (loss, accuracy, training_time)
 
 if __name__ == "__main__":
-    """ The default experiment, which runs the specified model for varying levels
-        of maximum training instances per class and saves the results to an output
-        file.
-    """
-    results = {}
-    for n in [5, 10, 15, 20, 25, 30]:
-        results[n] = train_with_examples_per_class(n)
+    if args.exp_mode == "num_examples":
+        """ The num_examples experiment, which runs the specified model for varying levels
+            of maximum training instances per class and saves the results to an output
+            file.
+        """
+        results = {}
+        for n in [5, 10, 15, 20, 25, 30]:
+            results[n] = train_with_examples_per_class(n)
 
-    with open(os.path.join(args.data_dir, args.model_name + "_results.json"), "w") as f:
-    json.dump(results, f)
+        with open(os.path.join(args.data_dir, args.model_name + "_results.json"), "w") as f:
+            json.dump(results, f)
+
+    else:
+        """ The default experiment trains one model as specified by config flags """
+        train_with_examples_per_class()

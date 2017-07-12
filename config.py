@@ -30,4 +30,9 @@ parser.add_argument("--caltech_101_cache", type=str, default="caltech_101.hdf5",
 parser.add_argument("--labels_file", type=str, default="labels.json",
                     help="The filename to store the class indices to names")
 
+# Experiment configuration
+parser.add_argument("--exp_mode", type=str, default="train",
+                    choices=["train", "num_examples"],
+                    help="Choose which experiment to perform.")
+
 args = parser.parse_args()
