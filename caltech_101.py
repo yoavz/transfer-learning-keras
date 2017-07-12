@@ -31,15 +31,15 @@ def load_images():
     labels = class_labels()
     num_labels = len(labels)
 
-    train_x_arr = [] 
+    train_x_arr = []
     train_y_arr = []
-    test_x_arr = [] 
+    test_x_arr = []
     test_y_arr = []
 
-    for class_idx, name  in labels.iteritems():   
+    for class_idx, name  in labels.iteritems():
         print "Loading {} images...".format(name)
         class_path = os.path.join(CALTECH_101_DIR, name)
-        files = [os.path.join(class_path, f) for f in os.listdir(class_path) 
+        files = [os.path.join(class_path, f) for f in os.listdir(class_path)
                     if os.path.isfile(os.path.join(class_path, f))]
         imgs = []
         for img_file in files:
@@ -54,13 +54,13 @@ def load_images():
 
         # Generate one-hot encodings for the class labels
         train_batch_len = len(imgs[:split])
-        train_y = np.zeros((train_batch_len, num_labels), dtype=int)
-        train_y[:, int(class_idx)] = 1
+        train_y = np.multiply(int(class_idx),
+                              np.ones((train_batch_len,), dtype=int))
         train_y_arr.append(train_y)
 
         test_batch_len = len(imgs[split:])
-        test_y = np.zeros((test_batch_len, num_labels), dtype=int)
-        test_y[:, int(class_idx)] = 1
+        test_y = np.multiply(int(class_idx),
+                             np.ones((test_batch_len,), dtype=int))
         test_y_arr.append(test_y)
 
     return ((np.concatenate(train_x_arr), np.concatenate(train_y_arr)),
@@ -84,3 +84,6 @@ def load_data(recache=False):
     test_y = f["test_y"][:]
     f.close()
     return ((train_x, train_y), (test_x, test_y))
+
+if __name__ == "__main__":
+    load_data(recache=True)
