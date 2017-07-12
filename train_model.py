@@ -98,7 +98,7 @@ if __name__ == "__main__":
             file.
         """
         results = {}
-        for n in [1, 2, 3, 4, 5]:
+        for n in [5, 10, 15, 20, 25]:
             results[n] = train_with_examples_per_class(n)
 
         with open(os.path.join(args.data_dir, args.model_name + "_results.json"), "w") as f:
