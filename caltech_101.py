@@ -9,10 +9,6 @@ import numpy as np
 import os
 import pickle
 
-# It is assumed that a user
-LABELS = os.path.join(caltech_101_dir(), "labels.json")
-
-
 """ Several convienience functions to assist in the loading / configuration """
 def caltech_101_cache():
     return os.path.join(args.data_dir, args.caltech_101_cache)
@@ -27,13 +23,13 @@ def class_labels():
     """ Return a mapping of label indices -> class name in caltech 101 dataset
         Mapping is saved to cache so that it is consistent across calls.
     """
-    if not os.path.isfile(LABELS):
+    if not os.path.isfile(labels_cache()):
         all_directories = get_directories()
         labels = {idx: os.path.basename(d) for idx, d in enumerate(all_directories)}
-        with open(LABELS, "w") as f:
+        with open(labels_cache(), "w") as f:
             json.dump(labels, f)
 
-    return json.load(open(LABELS, "r"))
+    return json.load(open(labels_cache(), "r"))
 
 def num_class_labels():
     return len(class_labels())
