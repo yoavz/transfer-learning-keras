@@ -1,4 +1,4 @@
-"""Utility to manage the loading and labeling of the raw caltech 101 dataset.
+"""Manages the loading, labeling, and caching of the Caltech 101 dataset.
 """
 from keras.preprocessing import image
 
@@ -46,6 +46,7 @@ def load_images():
     labels = class_labels()
     num_labels = len(labels)
 
+    # These will assemble the training and test data, to be concatenated later
     train_x_arr = []
     train_y_arr = []
     test_x_arr = []
@@ -61,13 +62,12 @@ def load_images():
             img = image.load_img(img_file, target_size=(224, 224))
             imgs.append(image.img_to_array(img))
 
+        # Decide on the index to split training and test sets at
         split = int(np.floor(len(imgs) * args.train_test_ratio))
 
-        # each X will be a batch of images
         train_x_arr.append(np.stack(imgs[:split], axis=0))
         test_x_arr.append(np.stack(imgs[split:], axis=0))
 
-        # Generate one-hot encodings for the class labels
         train_batch_len = len(imgs[:split])
         train_y = np.multiply(int(class_idx),
                               np.ones((train_batch_len,), dtype=int))

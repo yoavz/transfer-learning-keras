@@ -7,72 +7,96 @@ from keras.utils import to_categorical
 from config import args
 import caltech_101
 import datetime
-import json
 import generate_cnn_codes
+import json
 import numpy as np
 import os
 
-def get_model_filepath(examples_per_class):
-  return os.path.join(args.data_dir, args.model_name + "_" +
+def checkpoint_filepath(examples_per_class):
+    return os.path.join(args.data_dir, args.model_name + "_" +
                       str(examples_per_class) +
                       "_weights.{epoch:02d}-{val_acc:.2f}.hdf5")
 
-def train_with_examples_per_class(examples_per_class):
-  (train_x, train_y), (test_x, test_y) = generate_cnn_codes.get_codes()
+def train_with_examples_per_class(examples_per_class=None):
+    """ Train a softmax model on the CNN codes of a model given the arguments 
+        specified (see config.py for training/model configuration).
 
-  indices = []
-  for i in range(caltech_101.num_class_labels()):
-    class_indices = np.squeeze(np.argwhere(train_y == i))
-    num_in_class = len(class_indices)
-    class_indices = class_indices[:min(num_in_class, examples_per_class)]
-    indices.append(class_indices)
+        examples_per_class (optional) will limit the training instances per
+        class to a maximum number, if specified.
 
-  all_indices = np.concatenate(indices)
-  train_x = train_x[all_indices, :, :, :]
-  train_y = train_y[all_indices]
+        Returns (test_loss, test_accuracy, training_time) for trained model.
+    """
 
-  train_labels = to_categorical(train_y, num_classes=caltech_101.num_class_labels())
-  test_labels = to_categorical(test_y, num_classes=caltech_101.num_class_labels())
+    (train_x, train_y), (test_x, test_y) = generate_cnn_codes.get_codes()
 
-  input_shape = train_x.shape[1:]
-  assert train_x.shape[1:] == test_x.shape[1:]
+    if examples_per_class:
+        # For each class, cutoff the indices at examples_per_class and use
+        # these indices to reassign the training data and labels.
+        indices = []
+        for i in range(caltech_101.num_class_labels()):
+            class_indices = np.squeeze(np.argwhere(train_y == i))
+            num_in_class = len(class_indices)
+            class_indices = class_indices[:min(num_in_class, examples_per_class)]
+            indices.append(class_indices)
 
-  inputs = Input(input_shape)
-  flatten = Flatten(name = "flatten")(inputs)
-  predictions = Dense(caltech_101.num_class_labels(),
-                      activation = "softmax")(flatten)
+        all_indices = np.concatenate(indices)
+        train_x = train_x[all_indices, :, :, :]
+        train_y = train_y[all_indices]
 
-  print "Training model: {}, input shape: {}, flattened: {}".format(
+    # Convert the 1-D labels to one-hot matrices
+    train_labels = to_categorical(train_y, num_classes=caltech_101.num_class_labels())
+    test_labels = to_categorical(test_y, num_classes=caltech_101.num_class_labels())
+
+    # Sanity check: the training data shape should equal the test data shape
+    input_shape = train_x.shape[1:]
+    assert train_x.shape[1:] == test_x.shape[1:]
+
+    # The model is extremely simple: flatten the CNN convolutional layer to a 1-D layer and 
+    # train a single softmax layer on top of it.
+    inputs = Input(input_shape)
+    flatten = Flatten(name = "flatten")(inputs)
+    predictions = Dense(caltech_101.num_class_labels(), activation = "softmax")(flatten)
+
+    print "Training model: {}, input shape: {}, flattened: {}".format(
       args.model_name, input_shape, np.prod(input_shape))
 
-  checkpoint = ModelCheckpoint(get_model_filepath(examples_per_class),
-                               monitor = "val_acc",
-                               save_best_only = True, mode = "max")
-  model = Model(inputs, predictions, name = "softmax-classification")
-  model.compile(optimizer = args.optimizer,
-                loss = "categorical_crossentropy",
-                metrics = ["accuracy"])
-  t = datetime.datetime.now()
-  model.fit(train_x, train_labels,
-            batch_size = args.batch_size,
-            epochs = args.epochs,
-            validation_data = (test_x, test_labels),
-            shuffle = True,
-            callbacks = [checkpoint],
-            verbose = 1)
+    model = Model(inputs, predictions, name = "softmax-classification")
+    model.compile(optimizer = args.optimizer,
+                  loss = "categorical_crossentropy",
+                  metrics = ["accuracy"])
 
-  training_time = (datetime.datetime.now() - t).seconds
-  loss, accuracy = model.evaluate(test_x, test_labels, batch_size=args.batch_size)
-  print('Test loss:', loss)
-  print('Test accuracy:', accuracy)
-  print("Training time: {}".format(training_time))
+    # Model checkpoints will be saved every time the validation accuracy reaches a new
+    # max value.
+    checkpoint = ModelCheckpoint(checkpoint_filepath(examples_per_class),
+                                 monitor = "val_acc",
+                                 save_best_only = True, mode = "max")
 
-  return (loss, accuracy, training_time)
+    # The main keras training loop that does most of the computation
+    t = datetime.datetime.now()
+    model.fit(train_x, train_labels,
+              batch_size = args.batch_size,
+              epochs = args.epochs,
+              validation_data = (test_x, test_labels),
+              shuffle = True,
+              callbacks = [checkpoint],
+              verbose = 1)
+    training_time = (datetime.datetime.now() - t).seconds
+
+    loss, accuracy = model.evaluate(test_x, test_labels, batch_size=args.batch_size)
+    print('Test loss:', loss)
+    print('Test accuracy:', accuracy)
+    print("Training time: {}".format(training_time))
+
+    return (loss, accuracy, training_time)
 
 if __name__ == "__main__":
-  results = {}
-  for n in [5, 10, 15, 20, 25, 30]:
-    results[n] = train_with_examples_per_class(n)
+    """ The default experiment, which runs the specified model for varying levels
+        of maximum training instances per class and saves the results to an output
+        file.
+    """
+    results = {}
+    for n in [5, 10, 15, 20, 25, 30]:
+        results[n] = train_with_examples_per_class(n)
 
-  with open(os.path.join(args.data_dir, args.model_name + "_results.json"), "w") as f:
+    with open(os.path.join(args.data_dir, args.model_name + "_results.json"), "w") as f:
     json.dump(results, f)
